@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test Form Generator</title>
+<style>
+body{font:15px system-ui,sans-serif;max-width:900px;margin:0 auto;padding:16px;color:#222}
+h1{font-size:22px}.bar,.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.card{border:1px solid #bbb;border-radius:8px;padding:10px;margin:12px 0;background:#fafafa}
+textarea{width:100%;box-sizing:border-box;font:13px/1.4 ui-monospace,monospace}
+input[type=text],input:not([type]){padding:5px}.row input{flex:1;font-weight:600}
+button,.btn{padding:6px 10px;border:1px solid #888;border-radius:6px;background:#fff;cursor:pointer;font-size:14px}
+.pri{background:#1a5fb4;color:#fff;border-color:#1a5fb4}
+.imgs{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}figure{margin:0;text-align:center;font-size:12px;border:1px solid #ccc;padding:4px;background:#fff}
+figure img{max-width:80px;max-height:60px;display:block;margin:auto}figcaption{cursor:pointer;color:#1a5fb4}
+details{background:#f0f4fa;padding:8px;border-radius:6px}code{background:#e8e8e8;padding:0 3px}
+</style></head><body>
+<h1>Test Form Generator (Word .docx)</h1>
+<div class="bar">
+<label>Title <input id="title" placeholder="Test title"></label>
+<label>Forms <input id="nf" type="number" min="1" max="6" value="4" style="width:50px"></label>
+<label>Scramble seed <input id="seed" placeholder="any text" style="width:100px"></label>
+<label><input type="checkbox" id="keepA"> Form A keeps the original order</label>
+</div>
+<details><summary>Format help</summary>
+<p>One question per line. Bullets (<code>*</code>) under a question are the answer choices. <b>The first bullet is always the correct answer</b>; each form scrambles the order.</p>
+<p>A question containing <code>___</code> (three underscores) is fill in the blank. Bullets under it are the answers for each blank, in order (the key shows them).</p>
+<p>Sections stay in order, one page each. Questions and choices scramble inside a section. Use <code>**bold**</code> and <code>`code`</code>. Lines starting with <code>//</code> are ignored.</p>
+<p><b>Privacy:</b> this page starts blank and sends nothing anywhere. Load JSON stores the test bank only in this browser (local storage) so it can be edited and debugged locally. Keep the JSON file out of the public repository.</p><p>Images: click <b>+ Images</b> in a section, then paste a tag such as <code>[[img1]]</code> (click the tag under a picture to copy it) into a question line or into a bullet to make a picture answer choice.</p></details>
+<div id="secs"></div>
+<div class="bar">
+<button id="add">+ Add section</button>
+<button id="gen" class="pri">Generate Word documents</button>
+<button id="sv">Save JSON</button>
+<label class="btn">Load JSON<input type="file" id="ld" accept=".json" hidden></label>
+<button id="clr">Clear local data</button> <span id="msg"></span></div>
+<script>
+
+const $=id=>document.getElementById(id),el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e};
+const btn=(t,f)=>{const b=el('button');b.textContent=t;b.onclick=f;return b};
+let S=[];
+try{const o=JSON.parse(localStorage.getItem('tg2'));if(o&&o.S){S=o.S.map(s=>({im:[],n:0,...s}));$('title').value=o.title;$('nf').value=o.nf;$('seed').value=o.seed;$('keepA').checked=o.keepA}}catch(e){}
+const state=()=>({S,title:$('title').value,nf:$('nf').value,seed:$('seed').value,keepA:$('keepA').checked});
+const save=()=>{try{localStorage.setItem('tg2',JSON.stringify(state()));$('msg').textContent=''}catch(e){$('msg').textContent='Browser storage is full. Use Save JSON to keep this work.'}};
+['title','nf','seed','keepA'].forEach(i=>$(i).oninput=save);
+function mv(i,d){const j=i+d;if(j<0||j>=S.length)return;[S[i],S[j]]=[S[j],S[i]];render();save()}
+function addImgs(s,files){[...files].forEach(f=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,360/Math.max(im.width,im.height)),c=el('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);s.im.push({id:++s.n,u:c.toDataURL('image/png'),w:c.width,h:c.height});render();save()};im.src=r.result};r.readAsDataURL(f)})}
+function render(){const box=$('secs');box.innerHTML='';if(!S.length)box.textContent='No sections yet. Use + Add section, or Load JSON to restore a saved test bank.';S.forEach((s,i)=>{
+const d=el('div','card'),h=el('div','row'),ti=el('input');ti.value=s.t;ti.oninput=()=>{s.t=ti.value;save()};
+h.append(ti,btn('↑',()=>mv(i,-1)),btn('↓',()=>mv(i,1)),btn('Delete',()=>{if(confirm('Delete this section?')){S.splice(i,1);render();save()}}));
+const ta=el('textarea');ta.rows=12;ta.value=s.q;ta.oninput=()=>{s.q=ta.value;save()};
+const g=el('div','imgs');
+s.im.forEach(m=>{const f=el('figure'),p=new Image(),c=el('figcaption');p.src=m.u;c.textContent='[[img'+m.id+']]';c.title='Click to copy';c.onclick=()=>{try{navigator.clipboard.writeText(c.textContent)}catch(e){}};
+const x=el('a');x.textContent=' remove';x.style.cursor='pointer';x.onclick=()=>{s.im=s.im.filter(k=>k!==m);render();save()};f.append(p,c,x);g.append(f)});
+const lb=el('label','btn');lb.textContent='+ Images';const fi=el('input');fi.type='file';fi.accept='image/*';fi.multiple=true;fi.hidden=true;fi.onchange=()=>addImgs(s,fi.files);lb.append(fi);
+d.append(h,ta,g,lb);box.append(d)})}
+$('add').onclick=()=>{S.push({t:'New Section',q:'Question text?\n* Correct answer\n* Wrong answer\n* Wrong answer\n* Wrong answer',im:[],n:0});render();save()};
+$('sv').onclick=()=>{const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state())],{type:'application/json'}));a.download='test-generator-save.json';a.click()};
+$('ld').onchange=e=>{const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);S=o.S.map(s=>({im:[],n:0,...s}));$('title').value=o.title;$('nf').value=o.nf;$('seed').value=o.seed;$('keepA').checked=o.keepA;render();save()}catch(x){alert('Could not read that file.')}};r.readAsText(e.target.files[0])};
+function parse(t){const qs=[];let c=null;t.split('\n').forEach(l=>{l=l.trim();if(!l||l.startsWith('//'))return;const m=l.match(/^[*-]\s+(.*)/);if(m){if(c)c.o.push(m[1])}else{c={q:l.replace(/^\d+[.)]\s+/,''),o:[]};qs.push(c)}});return qs}
+function rng(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}let a=h;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuf(a,r){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const b64=u=>Uint8Array.from(atob(u.split(',')[1]),c=>c.charCodeAt(0));
+const plain=t=>t.replace(/\[\[img\d+\]\]/g,'(image)');
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'),E=n=>Math.round(n*9525);
+const P=(c,o={})=>`<w:p><w:pPr>${o.kn?'<w:keepNext/>':''}${o.kl?'<w:keepLines/>':''}${o.pb?'<w:pageBreakBefore/>':''}<w:spacing w:before="${o.b||0}" w:after="${o.a||0}"/>${o.l?`<w:ind w:left="${o.l}"/>`:''}</w:pPr>${c}</w:p>`;
+const R=(t,o={})=>`<w:r><w:rPr>${o.code?'<w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>':''}${o.b?'<w:b/>':''}${o.sz?`<w:sz w:val="${o.sz}"/>`:''}</w:rPr><w:t xml:space="preserve">${esc(t)}</w:t></w:r>`;
+function IR(m,sc,c){let i=c.media.indexOf(m);if(i<0)i=c.media.push(m)-1;const x=E(m.w*sc),y=E(m.h*sc),id=++c.id;
+return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${x}" cy="${y}"/><wp:docPr id="${id}" name="Picture ${id}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${id}" name="i${i}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId${i+10}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${x}" cy="${y}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`}
+function runs(t,s,sc,c){return t.split(/(\*\*[^*]+\*\*|`[^`]+`|\[\[img\d+\]\]|___)/).filter(x=>x).map(p=>{let m;
+if(m=p.match(/^\[\[img(\d+)\]\]$/)){const im=s.im.find(k=>k.id==m[1]);return im?IR(im,sc,c):R('[missing image]')}
+if(p==='___')return R('________________');
+if(/^\*\*[^*]+\*\*$/.test(p))return R(p.slice(2,-2),{b:1});
+if(/^`[^`]+`$/.test(p))return R(p.slice(1,-1),{code:1});
+return R(p)}).join('')}
+function crc(u){let t=crc.t;if(!t){t=crc.t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}let r=-1;for(let i=0;i<u.length;i++)r=t[(r^u[i])&255]^(r>>>8);return(r^-1)>>>0}
+function zip(files){const te=new TextEncoder(),ch=[],cd=[];let off=0,cs=0;
+files.forEach(f=>{const nm=te.encode(f.n),d=typeof f.d==='string'?te.encode(f.d):f.d,c=crc(d);
+const lh=new DataView(new ArrayBuffer(30));lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(12,33,true);lh.setUint32(14,c,true);lh.setUint32(18,d.length,true);lh.setUint32(22,d.length,true);lh.setUint16(26,nm.length,true);
+ch.push(new Uint8Array(lh.buffer),nm,d);
+const ce=new DataView(new ArrayBuffer(46));ce.setUint32(0,0x02014b50,true);ce.setUint16(4,20,true);ce.setUint16(6,20,true);ce.setUint16(14,33,true);ce.setUint32(16,c,true);ce.setUint32(20,d.length,true);ce.setUint32(24,d.length,true);ce.setUint16(28,nm.length,true);ce.setUint32(42,off,true);
+cd.push(new Uint8Array(ce.buffer),nm);off+=30+nm.length+d.length;cs+=46+nm.length});
+const en=new DataView(new ArrayBuffer(22));en.setUint32(0,0x06054b50,true);en.setUint16(8,files.length,true);en.setUint16(10,files.length,true);en.setUint32(12,cs,true);en.setUint32(16,off,true);
+return new Blob([...ch,...cd,new Uint8Array(en.buffer)],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
+function pack(body,media){const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"',RT='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const rel=media.map((m,i)=>`<Relationship Id="rId${i+10}" Type="${RT}/image" Target="media/i${i}.png"/>`).join('');
+return zip([
+{n:'[Content_Types].xml',d:H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>'},
+{n:'_rels/.rels',d:H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}/officeDocument" Target="word/document.xml"/></Relationships>`},
+{n:'word/_rels/document.xml.rels',d:H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}/styles" Target="styles.xml"/>${rel}</Relationships>`},
+{n:'word/styles.xml',d:H+`<w:styles ${NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="24"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>`},
+{n:'word/document.xml',d:H+`<w:document ${NS} xmlns:r="${RT}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`},
+...media.map((m,i)=>({n:'word/media/i'+i+'.png',d:b64(m.u)}))])}
+function build(f){const L='ABCDEF'[f],r=rng($('seed').value+L),keep=f==0&&$('keepA').checked,c={media:[],id:0},ti=$('title').value||'Test';let n=0;
+let T=P(R(ti,{b:1,sz:32}))+P(R('Form '+L,{b:1,sz:28}))+P(R('Name: ______________________   Period: ____   Date: ________'),{a:200});
+let K=P(R(ti+' - Form '+L+' Answer Key',{b:1,sz:28}),{a:160,pb:f>0});
+S.forEach((s,si)=>{let qs=parse(s.q).map(q=>q.q.includes('___')?{q:q.q,fill:1,a:q.o}:{q:q.q,o:q.o.map((x,i)=>({x,c:!i}))});
+if(!keep){qs=shuf(qs,r);qs.forEach(q=>{if(!q.fill)q.o=shuf(q.o,r)})}
+T+=P(R(s.t,{b:1,sz:26}),{pb:si>0,a:120});K+=P(R(s.t,{b:1,sz:24}),{b:160});
+qs.forEach(q=>{n++;T+=P(runs(n+'. '+q.q,s,1,c),{kn:!q.fill&&q.o.length>0,b:160,a:80});
+if(q.fill)K+=P(R(n+'. '+q.a.map(plain).join(', ')+(q.a.length>1?'  (any order)':'')));
+else if(!q.o.length)K+=P(R(n+'. (open response)'));
+else{q.o.forEach((o,i)=>{T+=P(R(String.fromCharCode(65+i)+'.  ')+runs(o.x,s,.7,c),{l:540,kn:i<q.o.length-1,kl:1})});
+const ci=q.o.findIndex(o=>o.c);K+=P(R(n+'. '+String.fromCharCode(65+ci)+'  ('+plain(q.o[ci].x)+')'))}})});
+return{t:T,k:K,media:c.media}}
+function dl(b,name){const a=el('a');a.href=URL.createObjectURL(b);a.download=name;a.click()}
+$('gen').onclick=async()=>{if(!S.length){$('msg').textContent='Add a section or load a test bank first.';return}
+try{const nf=Math.max(1,Math.min(6,+$('nf').value||1)),nm=($('title').value||'Test').replace(/[^\w-]+/g,'_');let keys='';
+for(let f=0;f<nf;f++){const o=build(f);dl(pack(o.t,o.media),nm+'_Form_'+'ABCDEF'[f]+'.docx');keys+=o.k;await new Promise(r=>setTimeout(r,500))}
+dl(pack(keys,[]),nm+'_Answer_Keys.docx');$('msg').textContent='Done: '+nf+' forms plus the answer key.'}catch(e){$('msg').textContent='Error: '+e.message;console.error(e)}};
+$('clr').onclick=()=>{if(confirm('Remove the test bank stored in this browser? Use Save JSON first if it is still needed.')){try{localStorage.removeItem('tg2')}catch(e){}S=[];$('title').value='';$('seed').value='';render()}};
+render();
+</script></body></html>
