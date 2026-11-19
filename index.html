@@ -12,6 +12,7 @@ button,.btn{padding:6px 10px;border:1px solid #888;border-radius:6px;background:
 .imgs{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}figure{margin:0;text-align:center;font-size:12px;border:1px solid #ccc;padding:4px;background:#fff}
 figure img{max-width:80px;max-height:60px;display:block;margin:auto}figcaption{cursor:pointer;color:#1a5fb4}
 #pv{margin:12px 0;overflow-x:auto}#pv.side{display:flex;flex-wrap:wrap;gap:8px}.pg{width:792px;height:612px;box-sizing:border-box;padding:36px;background:#fff;border:1px solid #888;position:relative;flex:none;margin-bottom:8px}#pv.side .pg{zoom:.5}.pg>b{font:bold 11px Helvetica,Arial}.pg.tp{height:auto;min-height:792px;width:612px;font:13px Calibri,Arial,sans-serif}.pg.tp h3{font:bold 15px Arial;margin:14px 0 8px}.q{margin:10px 0 3px}.op{margin-left:24px;padding:1px 3px}.ok{background:#d6f5d6}.nm2{font:11px Arial;margin:4px 0}.pg .nm,.pg .an{font:10px Helvetica,Arial}.pg .nm{position:absolute;left:500px;top:36px}.pg .an{margin:6px 0 4px}.code{border-left:.6px solid #000;margin-left:28px;padding-top:2px}.code div{white-space:pre;font:9px/11.2px 'Courier New',monospace;height:11.2px}.code i{display:inline-block;width:30px;margin-left:-32px;margin-right:2px;text-align:right;font-style:normal;color:#000}.code .er{background:#ffd6d6}
+#pv.scroll{display:flex;flex-wrap:nowrap;gap:12px;align-items:flex-start;border:1px solid #888;background:#e4e4e4;padding:10px;max-height:80vh;overflow:auto}#pv.scroll .pg{zoom:.6;margin-bottom:0}.pg.gs{border-left:6px solid #1a5fb4}
 details{background:#f0f4fa;padding:8px;border-radius:6px}code{background:#e8e8e8;padding:0 3px}
 </style></head><body>
 <h1>Test Form Generator (Word .docx)</h1>
@@ -35,7 +36,7 @@ details{background:#f0f4fa;padding:8px;border-radius:6px}code{background:#e8e8e8
 <label class="btn">Load JSON<input type="file" id="ld" accept=".json" hidden></label>
 <button id="clr">Clear local data</button> <span id="msg"></span></div>
 <div class="bar"><b>Preview and PDF:</b>
-<select id="pvl"><option value="side">Preview side by side</option><option value="stack">Preview one after the other</option></select>
+<select id="pvl"><option value="side">Preview side by side (wrapping)</option><option value="scroll">Preview scrollable row (page 1 of every form, then page 2, ...)</option><option value="stack">Preview one after the other</option></select>
 <label><input type="checkbox" id="pvk"> show answers</label>
 <button id="pvt">Preview entire test (all forms)</button><button id="pvb">Preview code pages</button><button id="pdf1">Save code pages as one PDF</button><button id="pdfn">Save code pages as a PDF per form</button></div>
 <div id="pv"></div>
@@ -190,9 +191,9 @@ const ch=[];for(let i=0;i<ls.length;i+=44)ch.push(keyOps('Code Pages Answer Key'
 const hasCode=()=>S.some(s=>s.type==='code'&&parseCode(s.q).length);
 function pageHtml(p,show){return '<div class="pg"><b>'+esc(p.head)+'</b><span class="nm">Name: ____________ Period: ____</span><div class="an">Line number with the mistake: ______ &nbsp; What is wrong? ______________________________</div><div class="code">'+p.lines.slice(0,44).map((l,i)=>'<div class="'+(show&&i===p.err?'er':'')+'"><i>'+(i+1)+'</i>'+(esc(l)||' ')+'</div>').join('')+'</div></div>'}
 $('pvb').onclick=()=>{if(!hasCode()){$('msg').textContent='Add a code page section first.';return}
-const side=$('pvl').value==='side',show=$('pvk').checked,pv=$('pv');let h='',all=[];
-for(let f=0;f<nForms();f++){const d=codeData(f);all=all.concat(d);h+=d.map(p=>pageHtml(p,show)).join('')}
-pv.className=side?'side':'stack';pv.innerHTML=h;$('msg').textContent=all.length+' code pages previewed.'+warnFor(all);pv.scrollIntoView()};
+const show=$('pvk').checked,pv=$('pv');let per=[],all=[];
+for(let f=0;f<nForms();f++){const d=codeData(f);all=all.concat(d);per.push(d.map(p=>pageHtml(p,show)))}
+showPv(per);$('msg').textContent=all.length+' code pages previewed.'+warnFor(all);pv.scrollIntoView()};
 $('pdf1').onclick=()=>{if(!hasCode()){$('msg').textContent='Add a code page section first.';return}
 let all=[];for(let f=0;f<nForms();f++)all=all.concat(codeData(f));const nm=($('title').value||'Test').replace(/[^\w-]+/g,'_');
 dl(pdfBlob(all.map(codeOps)),nm+'_Code_Pages_All_Forms.pdf');setTimeout(()=>dl(pdfBlob(keyPages()),nm+'_Code_Pages_KEY.pdf'),500);$('msg').textContent='Saved 1 PDF plus the key.'+warnFor(all)};
@@ -204,12 +205,15 @@ $('addc').onclick=()=>{S.push({t:'Code Page Error Analysis',type:'code',mode:'bo
 
 function hi(t,s,sc){return t.split(/(\*\*[^*]+\*\*|`[^`]+`|\[\[img\d+\]\]|___)/).filter(x=>x).map(p=>{let m;if(m=p.match(/^\[\[img(\d+)\]\]$/)){const im=s.im.find(k=>k.id==m[1]);return im?'<img src="'+im.u+'" width="'+Math.round(im.w*sc)+'" height="'+Math.round(im.h*sc)+'">':'[missing image]'}
 if(p==='___')return '________________';if(/^\*\*[^*]+\*\*$/.test(p))return '<b>'+esc(p.slice(2,-2))+'</b>';if(/^`[^`]+`$/.test(p))return '<code>'+esc(p.slice(1,-1))+'</code>';return esc(p)}).join('')}
-function testHtml(f,show){const L='ABCDEF'[f],ti=$('title').value||'Test';let n=0,h='';
-formData(f).forEach(({s,qs})=>{h+='<div class="pg tp"><b>'+esc(ti)+' - Form '+L+'</b><div class="nm2">Name: ______________ &nbsp; Period: ____ &nbsp; Date: ________</div><h3>'+esc(s.t)+'</h3>'+qs.map(q=>{n++;let x='<div class="q">'+n+'. '+hi(q.q,s,1)+'</div>';
-if(q.fill){if(show)x+='<div class="op ok">Answer: '+esc(q.a.join(', '))+'</div>'}else x+=q.o.map((o,i)=>'<div class="op'+(show&&o.c?' ok':'')+'">'+String.fromCharCode(65+i)+'. '+hi(o.x,s,.7)+'</div>').join('');return x}).join('')+'</div>'});return h}
+function showPv(per){const m=$('pvl').value,pv=$('pv');let pages=[];
+if(m==='scroll'){const mx=Math.max(0,...per.map(a=>a.length));for(let i=0;i<mx;i++)per.forEach((a,f)=>{if(a[i])pages.push(f===0?a[i].replace('class="pg','class="pg gs'):a[i])})}else pages=[].concat(...per);
+pv.className=m;pv.innerHTML=pages.join('');pv.scrollLeft=0}
+function testHtml(f,show){const L='ABCDEF'[f],ti=$('title').value||'Test';let n=0,h=[];
+formData(f).forEach(({s,qs})=>{h.push('<div class="pg tp"><b>'+esc(ti)+' - Form '+L+'</b><div class="nm2">Name: ______________ &nbsp; Period: ____ &nbsp; Date: ________</div><h3>'+esc(s.t)+'</h3>'+qs.map(q=>{n++;let x='<div class="q">'+n+'. '+hi(q.q,s,1)+'</div>';
+if(q.fill){if(show)x+='<div class="op ok">Answer: '+esc(q.a.join(', '))+'</div>'}else x+=q.o.map((o,i)=>'<div class="op'+(show&&o.c?' ok':'')+'">'+String.fromCharCode(65+i)+'. '+hi(o.x,s,.7)+'</div>').join('');return x}).join('')+'</div>')});return h}
 $('pvt').onclick=()=>{if(!S.length){$('msg').textContent='Add a section or load a test bank first.';return}
-const side=$('pvl').value==='side',show=$('pvk').checked,pv=$('pv');let h='',all=[];
-for(let f=0;f<nForms();f++){h+=testHtml(f,show);const d=codeData(f);all=all.concat(d);h+=d.map(p=>pageHtml(p,show)).join('')}
-pv.className=side?'side':'stack';pv.innerHTML=h;$('msg').textContent='Entire test previewed for '+nForms()+' forms (sections first, then code pages). Long sections flow onto extra pages in Word.'+warnFor(all);pv.scrollIntoView()};
+const show=$('pvk').checked,pv=$('pv');let per=[],all=[];
+for(let f=0;f<nForms();f++){const d=codeData(f);all=all.concat(d);per.push(testHtml(f,show).concat(d.map(p=>pageHtml(p,show))))}
+showPv(per);$('msg').textContent='Entire test previewed for '+nForms()+' forms (sections first, then code pages). Long sections flow onto extra pages in Word.'+warnFor(all);pv.scrollIntoView()};
 render();
 </script></body></html>
