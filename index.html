@@ -11,6 +11,7 @@ button,.btn{padding:6px 10px;border:1px solid #888;border-radius:6px;background:
 .pri{background:#1a5fb4;color:#fff;border-color:#1a5fb4}
 .imgs{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}figure{margin:0;text-align:center;font-size:12px;border:1px solid #ccc;padding:4px;background:#fff}
 figure img{max-width:80px;max-height:60px;display:block;margin:auto}figcaption{cursor:pointer;color:#1a5fb4}
+#pv{margin:12px 0;overflow-x:auto}#pv.side{display:flex;flex-wrap:wrap;gap:8px}.pg{width:792px;height:612px;box-sizing:border-box;padding:36px;background:#fff;border:1px solid #888;position:relative;flex:none;margin-bottom:8px}#pv.side .pg{zoom:.5}.pg b{font:bold 11px Helvetica,Arial}.pg .nm,.pg .an{font:10px Helvetica,Arial}.pg .nm{position:absolute;left:500px;top:36px}.pg .an{margin:6px 0 4px}.code{border-left:.6px solid #000;margin-left:28px;padding-top:2px}.code div{white-space:pre;font:9px/11.2px 'Courier New',monospace;height:11.2px}.code i{display:inline-block;width:30px;margin-left:-32px;margin-right:2px;text-align:right;font-style:normal;color:#000}.code .er{background:#ffd6d6}
 details{background:#f0f4fa;padding:8px;border-radius:6px}code{background:#e8e8e8;padding:0 3px}
 </style></head><body>
 <h1>Test Form Generator (Word .docx)</h1>
@@ -24,14 +25,20 @@ details{background:#f0f4fa;padding:8px;border-radius:6px}code{background:#e8e8e8
 <p>One question per line. Bullets (<code>*</code>) under a question are the answer choices. <b>The first bullet is always the correct answer</b>; each form scrambles the order.</p>
 <p>A question containing <code>___</code> (three underscores) is fill in the blank. Bullets under it are the answers for each blank, in order (the key shows them).</p>
 <p>Sections stay in order, one page each. Questions and choices scramble inside a section. Use <code>**bold**</code> and <code>`code`</code>. Lines starting with <code>//</code> are ignored.</p>
-<p><b>Privacy:</b> this page starts blank and sends nothing anywhere. Load JSON stores the test bank only in this browser (local storage) so it can be edited and debugged locally. Keep the JSON file out of the public repository.</p><p>Images: click <b>+ Images</b> in a section, then paste a tag such as <code>[[img1]]</code> (click the tag under a picture to copy it) into a question line or into a bullet to make a picture answer choice.</p></details>
+<p><b>Privacy:</b> this page starts blank and sends nothing anywhere. Load JSON stores the test bank only in this browser (local storage) so it can be edited and debugged locally. Keep the JSON file out of the public repository.</p><p><b>Code page sections</b> (landscape, line numbers, for error analysis): separate pages with a line of <code>---</code>. Mark each possible mistake as <code>correct line @@ wrong line @@ optional note</code>; write the wrong version exactly as it should print (including its indentation). Each page shows one mistake. Choose to shuffle the page order, which mistake each page uses, or both. Code pages are saved as PDF (with a separate KEY pdf) and are not part of the Word documents, although the Word answer key lists them.</p><p>Images: click <b>+ Images</b> in a section, then paste a tag such as <code>[[img1]]</code> (click the tag under a picture to copy it) into a question line or into a bullet to make a picture answer choice.</p></details>
 <div id="secs"></div>
 <div class="bar">
 <button id="add">+ Add section</button>
+<button id="addc">+ Add code page section</button>
 <button id="gen" class="pri">Generate Word documents</button>
 <button id="sv">Save JSON</button>
 <label class="btn">Load JSON<input type="file" id="ld" accept=".json" hidden></label>
 <button id="clr">Clear local data</button> <span id="msg"></span></div>
+<div class="bar"><b>Code pages:</b>
+<select id="pvl"><option value="side">Preview side by side</option><option value="stack">Preview one after the other</option></select>
+<label><input type="checkbox" id="pvk"> show mistakes</label>
+<button id="pvb">Preview</button><button id="pdf1">Save one PDF</button><button id="pdfn">Save a PDF per form</button></div>
+<div id="pv"></div>
 <script>
 
 const $=id=>document.getElementById(id),el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e};
@@ -46,12 +53,12 @@ function addImgs(s,files){[...files].forEach(f=>{const r=new FileReader();r.onlo
 function render(){const box=$('secs');box.innerHTML='';if(!S.length)box.textContent='No sections yet. Use + Add section, or Load JSON to restore a saved test bank.';S.forEach((s,i)=>{
 const d=el('div','card'),h=el('div','row'),ti=el('input');ti.value=s.t;ti.oninput=()=>{s.t=ti.value;save()};
 h.append(ti,btn('↑',()=>mv(i,-1)),btn('↓',()=>mv(i,1)),btn('Delete',()=>{if(confirm('Delete this section?')){S.splice(i,1);render();save()}}));
-const ta=el('textarea');ta.rows=12;ta.value=s.q;ta.oninput=()=>{s.q=ta.value;save()};
+const code=s.type==='code',ta=el('textarea');ta.rows=code?24:12;ta.value=s.q;ta.oninput=()=>{s.q=ta.value;save()};
 const g=el('div','imgs');
 s.im.forEach(m=>{const f=el('figure'),p=new Image(),c=el('figcaption');p.src=m.u;c.textContent='[[img'+m.id+']]';c.title='Click to copy';c.onclick=()=>{try{navigator.clipboard.writeText(c.textContent)}catch(e){}};
 const x=el('a');x.textContent=' remove';x.style.cursor='pointer';x.onclick=()=>{s.im=s.im.filter(k=>k!==m);render();save()};f.append(p,c,x);g.append(f)});
 const lb=el('label','btn');lb.textContent='+ Images';const fi=el('input');fi.type='file';fi.accept='image/*';fi.multiple=true;fi.hidden=true;fi.onchange=()=>addImgs(s,fi.files);lb.append(fi);
-d.append(h,ta,g,lb);box.append(d)})}
+if(code){const sl=el('select');[['both','Shuffle page order and which mistake is used'],['pages','Shuffle page order only'],['errors','Shuffle which mistake is used only']].forEach(([v,t])=>{const o=el('option');o.value=v;o.textContent=t;sl.append(o)});sl.value=s.mode||'both';sl.onchange=()=>{s.mode=sl.value;save()};const hi=el('div');hi.textContent='Pages separated by ---. Mistake spots: correct line @@ wrong line @@ note. About 44 lines of up to 127 characters fit on a page.';hi.style.cssText='font-size:12px;margin:6px 0';d.append(h,sl,hi,ta)}else d.append(h,ta,g,lb);box.append(d)})}
 $('add').onclick=()=>{S.push({t:'New Section',q:'Question text?\n* Correct answer\n* Wrong answer\n* Wrong answer\n* Wrong answer',im:[],n:0});render();save()};
 $('sv').onclick=()=>{const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state())],{type:'application/json'}));a.download='test-generator-save.json';a.click()};
 $('ld').onchange=e=>{const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);S=o.S.map(s=>({im:[],n:0,...s}));$('title').value=o.title;$('nf').value=o.nf;$('seed').value=o.seed;$('keepA').checked=o.keepA;render();save()}catch(x){alert('Could not read that file.')}};r.readAsText(e.target.files[0])};
@@ -92,20 +99,72 @@ return zip([
 function build(f){const L='ABCDEF'[f],r=rng($('seed').value+L),keep=f==0&&$('keepA').checked,c={media:[],id:0},ti=$('title').value||'Test';let n=0;
 let T=P(R(ti,{b:1,sz:32}))+P(R('Form '+L,{b:1,sz:28}))+P(R('Name: ______________________   Period: ____   Date: ________'),{a:200});
 let K=P(R(ti+' - Form '+L+' Answer Key',{b:1,sz:28}),{a:160,pb:f>0});
-S.forEach((s,si)=>{let qs=parse(s.q).map(q=>q.q.includes('___')?{q:q.q,fill:1,a:q.o}:{q:q.q,o:q.o.map((x,i)=>({x,c:!i}))});
+let first=1;S.forEach(s=>{if(s.type==='code')return;let qs=parse(s.q).map(q=>q.q.includes('___')?{q:q.q,fill:1,a:q.o}:{q:q.q,o:q.o.map((x,i)=>({x,c:!i}))});
 if(!keep){qs=shuf(qs,r);qs.forEach(q=>{if(!q.fill)q.o=shuf(q.o,r)})}
-T+=P(R(s.t,{b:1,sz:26}),{pb:si>0,a:120});K+=P(R(s.t,{b:1,sz:24}),{b:160});
+T+=P(R(s.t,{b:1,sz:26}),{pb:!first,a:120});first=0;K+=P(R(s.t,{b:1,sz:24}),{b:160});
 qs.forEach(q=>{n++;T+=P(runs(n+'. '+q.q,s,1,c),{kn:!q.fill&&q.o.length>0,b:160,a:80});
 if(q.fill)K+=P(R(n+'. '+q.a.map(plain).join(', ')+(q.a.length>1?'  (any order)':'')));
 else if(!q.o.length)K+=P(R(n+'. (open response)'));
 else{q.o.forEach((o,i)=>{T+=P(R(String.fromCharCode(65+i)+'.  ')+runs(o.x,s,.7,c),{l:540,kn:i<q.o.length-1,kl:1})});
 const ci=q.o.findIndex(o=>o.c);K+=P(R(n+'. '+String.fromCharCode(65+ci)+'  ('+plain(q.o[ci].x)+')'))}})});
+const ck=codeKey(f);if(ck.length)K+=P(R('Code Pages',{b:1,sz:24}),{b:160})+ck.map(x=>P(R(x))).join('');
 return{t:T,k:K,media:c.media}}
 function dl(b,name){const a=el('a');a.href=URL.createObjectURL(b);a.download=name;a.click()}
 $('gen').onclick=async()=>{if(!S.length){$('msg').textContent='Add a section or load a test bank first.';return}
 try{const nf=Math.max(1,Math.min(6,+$('nf').value||1)),nm=($('title').value||'Test').replace(/[^\w-]+/g,'_');let keys='';
-for(let f=0;f<nf;f++){const o=build(f);dl(pack(o.t,o.media),nm+'_Form_'+'ABCDEF'[f]+'.docx');keys+=o.k;await new Promise(r=>setTimeout(r,500))}
+for(let f=0;f<nf;f++){const o=build(f);if(S.some(s=>s.type!=='code'))dl(pack(o.t,o.media),nm+'_Form_'+'ABCDEF'[f]+'.docx');keys+=o.k;await new Promise(r=>setTimeout(r,500))}
 dl(pack(keys,[]),nm+'_Answer_Keys.docx');$('msg').textContent='Done: '+nf+' forms plus the answer key.'}catch(e){$('msg').textContent='Error: '+e.message;console.error(e)}};
 $('clr').onclick=()=>{if(confirm('Remove the test bank stored in this browser? Use Save JSON first if it is still needed.')){try{localStorage.removeItem('tg2')}catch(e){}S=[];$('title').value='';$('seed').value='';render()}};
+const CODE_SAMPLE=`name = input("Enter your name: ")
+age = int(input("Enter your age: "))
+print("Hello " + name)  @@ Print("Hello " + name)  @@ upper case P in print
+if age >= 16:
+    print("You can drive")  @@ print("You can drive")  @@ missing indent
+else:
+    print("Not yet")
+---
+celsius = int(input("Enter Celsius: "))  @@ celsius = input("Enter Celsius: ")  @@ forgot int()
+fahrenheit = (9/5) * celsius + 32  @@ fahrenheit = (9/5) * Celsius + 32  @@ variable name does not match
+print(fahrenheit)`;
+function parseCode(t){return t.split(/^[ \t]*-{3,}[ \t]*$/m).map(b=>b.replace(/^\s*\n/,'').replace(/\s+$/,'')).filter(b=>b).map(b=>{const lines=[],sites=[];
+b.split('\n').forEach((l,i)=>{if(l.includes('@@')){const q=l.split('@@');lines.push(q[0].replace(/\s+$/,''));sites.push({i,ok:q[0].replace(/\s+$/,''),bad:q[1].replace(/^ /,'').replace(/\s+$/,''),note:(q[2]||'').trim()})}else lines.push(l.replace(/\s+$/,''))});
+return{lines,sites}})}
+function codeData(f){const L='ABCDEF'[f],sd=$('seed').value,keep=f==0&&$('keepA').checked;let pgs=[];
+S.forEach(s=>{if(s.type!=='code')return;const mode=s.mode||'both';
+let ps=parseCode(s.q).map((p,pi)=>{let k=p.sites.length,si=0;if(k>1&&!keep&&mode!=='pages')si=(Math.floor(rng(sd+'e'+s.t+pi)()*k)+f)%k;
+const site=k?p.sites[si]:null;return{pi,site,err:site?site.i:-1,note:site?site.note:'',lines:p.lines.map((l,i)=>site&&site.i===i?site.bad:l),sec:s.t}});
+if(!keep&&mode!=='errors')ps=shuf(ps,rng(sd+L+'p'+s.t));
+pgs=pgs.concat(ps)});
+return pgs.map((p,k)=>({...p,head:'Form '+L+'   |   '+($('title').value||'Test')+'   |   Code Page '+(k+1)+' of '+pgs.length}))}
+function codeKey(f){const o=[];codeData(f).forEach((p,k)=>{o.push('Page '+(k+1)+' (original page '+(p.pi+1)+'): '+(p.err<0?'no mistake set':'mistake on line '+(p.err+1))+(p.note?' - '+p.note:''));if(p.site)o.push('      wrong: '+p.site.bad+'   |   fix: '+p.site.ok)});return o}
+const nForms=()=>Math.max(1,Math.min(6,+$('nf').value||1));
+function warnFor(pgs){const bad=pgs.filter(p=>p.lines.length>44||p.lines.some(l=>l.length>127)).length;return bad?' Warning: '+bad+' page(s) have more than 44 lines or lines over 127 characters, so the PDF cuts them off.':''}
+const pe=t=>t.replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"').replace(/\t/g,'    ').replace(/[^\x20-\x7e]/g,'?').replace(/[\\()]/g,'\\$&');
+const tx=(f,z,x,y,t)=>`BT /${f} ${z} Tf ${x.toFixed(1)} ${y.toFixed(1)} Td (${pe(t)}) Tj ET\n`;
+function codeOps(p){let o=tx('F3',11,36,574,p.head)+tx('F4',10,500,574,'Name: ________________  Period: ____')+tx('F4',10,36,556,'Line number with the mistake: ________     What is wrong? ______________________________________________')+'0.6 w 63 546 m 63 36 l S\n';
+p.lines.slice(0,44).forEach((l,i)=>{const y=538-i*11.2,n=String(i+1);o+=tx('F1',9,58-n.length*5.4,y,n)+tx('F1',9,68,y,l.slice(0,127))});return o}
+function keyOps(title,ls){let o=tx('F3',12,36,574,title);ls.forEach((l,i)=>{o+=tx('F1',9,36,552-i*11.2,l.slice(0,127))});return o}
+function pdfBlob(pages){let out='%PDF-1.4\n';const off=[],add=s=>{off.push(out.length);out+=s},n=pages.length;
+add('1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n');add('2 0 obj<</Type/Pages/Kids['+pages.map((_,i)=>(7+2*i)+' 0 R').join(' ')+']/Count '+n+'>>endobj\n');
+['Courier','Courier-Bold','Helvetica-Bold','Helvetica'].forEach((f,i)=>add((3+i)+' 0 obj<</Type/Font/Subtype/Type1/BaseFont/'+f+'/Encoding/WinAnsiEncoding>>endobj\n'));
+pages.forEach((p,i)=>{add((7+2*i)+' 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 792 612]/Resources<</Font<</F1 3 0 R/F2 4 0 R/F3 5 0 R/F4 6 0 R>>>>/Contents '+(8+2*i)+' 0 R>>endobj\n');add((8+2*i)+' 0 obj<</Length '+p.length+'>>stream\n'+p+'\nendstream endobj\n')});
+const x=out.length;out+='xref\n0 '+(off.length+1)+'\n0000000000 65535 f \n'+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+'trailer<</Size '+(off.length+1)+'/Root 1 0 R>>\nstartxref\n'+x+'\n%%EOF';
+return new Blob([Uint8Array.from(out,c=>c.charCodeAt(0))],{type:'application/pdf'})}
+function keyPages(){const nf=nForms(),ls=[];for(let f=0;f<nf;f++){ls.push('FORM '+'ABCDEF'[f]);codeKey(f).forEach(x=>ls.push(x));ls.push('')}
+const ch=[];for(let i=0;i<ls.length;i+=44)ch.push(keyOps('Code Pages Answer Key',ls.slice(i,i+44)));return ch}
+const hasCode=()=>S.some(s=>s.type==='code'&&parseCode(s.q).length);
+function pageHtml(p,show){return '<div class="pg"><b>'+esc(p.head)+'</b><span class="nm">Name: ____________ Period: ____</span><div class="an">Line number with the mistake: ______ &nbsp; What is wrong? ______________________________</div><div class="code">'+p.lines.slice(0,44).map((l,i)=>'<div class="'+(show&&i===p.err?'er':'')+'"><i>'+(i+1)+'</i>'+(esc(l)||' ')+'</div>').join('')+'</div></div>'}
+$('pvb').onclick=()=>{if(!hasCode()){$('msg').textContent='Add a code page section first.';return}
+const side=$('pvl').value==='side',show=$('pvk').checked,pv=$('pv');let h='',all=[];
+for(let f=0;f<nForms();f++){const d=codeData(f);all=all.concat(d);h+=d.map(p=>pageHtml(p,show)).join('')}
+pv.className=side?'side':'stack';pv.innerHTML=h;$('msg').textContent=all.length+' code pages previewed.'+warnFor(all);pv.scrollIntoView()};
+$('pdf1').onclick=()=>{if(!hasCode()){$('msg').textContent='Add a code page section first.';return}
+let all=[];for(let f=0;f<nForms();f++)all=all.concat(codeData(f));const nm=($('title').value||'Test').replace(/[^\w-]+/g,'_');
+dl(pdfBlob(all.map(codeOps)),nm+'_Code_Pages_All_Forms.pdf');setTimeout(()=>dl(pdfBlob(keyPages()),nm+'_Code_Pages_KEY.pdf'),500);$('msg').textContent='Saved 1 PDF plus the key.'+warnFor(all)};
+$('pdfn').onclick=async()=>{if(!hasCode()){$('msg').textContent='Add a code page section first.';return}
+const nm=($('title').value||'Test').replace(/[^\w-]+/g,'_');let all=[];
+for(let f=0;f<nForms();f++){const d=codeData(f);all=all.concat(d);dl(pdfBlob(d.map(codeOps)),nm+'_Code_Pages_Form_'+'ABCDEF'[f]+'.pdf');await new Promise(r=>setTimeout(r,500))}
+dl(pdfBlob(keyPages()),nm+'_Code_Pages_KEY.pdf');$('msg').textContent='Saved '+nForms()+' PDFs plus the key.'+warnFor(all)};
+$('addc').onclick=()=>{S.push({t:'Code Page Error Analysis',type:'code',mode:'both',q:CODE_SAMPLE,im:[],n:0});render();save()};
 render();
 </script></body></html>
