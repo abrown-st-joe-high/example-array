@@ -11,7 +11,7 @@ button,.btn{padding:6px 10px;border:1px solid #888;border-radius:6px;background:
 .pri{background:#1a5fb4;color:#fff;border-color:#1a5fb4}
 .imgs{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}figure{margin:0;text-align:center;font-size:12px;border:1px solid #ccc;padding:4px;background:#fff}
 figure img{max-width:80px;max-height:60px;display:block;margin:auto}figcaption{cursor:pointer;color:#1a5fb4}
-#pv{margin:12px 0;overflow-x:auto}#pv.side{display:flex;flex-wrap:wrap;gap:8px}.pg{width:792px;height:612px;box-sizing:border-box;padding:36px;background:#fff;border:1px solid #888;position:relative;flex:none;margin-bottom:8px}#pv.side .pg{zoom:.5}.pg b{font:bold 11px Helvetica,Arial}.pg .nm,.pg .an{font:10px Helvetica,Arial}.pg .nm{position:absolute;left:500px;top:36px}.pg .an{margin:6px 0 4px}.code{border-left:.6px solid #000;margin-left:28px;padding-top:2px}.code div{white-space:pre;font:9px/11.2px 'Courier New',monospace;height:11.2px}.code i{display:inline-block;width:30px;margin-left:-32px;margin-right:2px;text-align:right;font-style:normal;color:#000}.code .er{background:#ffd6d6}
+#pv{margin:12px 0;overflow-x:auto}#pv.side{display:flex;flex-wrap:wrap;gap:8px}.pg{width:792px;height:612px;box-sizing:border-box;padding:36px;background:#fff;border:1px solid #888;position:relative;flex:none;margin-bottom:8px}#pv.side .pg{zoom:.5}.pg>b{font:bold 11px Helvetica,Arial}.pg.tp{height:auto;min-height:792px;width:612px;font:13px Calibri,Arial,sans-serif}.pg.tp h3{font:bold 15px Arial;margin:14px 0 8px}.q{margin:10px 0 3px}.op{margin-left:24px;padding:1px 3px}.ok{background:#d6f5d6}.nm2{font:11px Arial;margin:4px 0}.pg .nm,.pg .an{font:10px Helvetica,Arial}.pg .nm{position:absolute;left:500px;top:36px}.pg .an{margin:6px 0 4px}.code{border-left:.6px solid #000;margin-left:28px;padding-top:2px}.code div{white-space:pre;font:9px/11.2px 'Courier New',monospace;height:11.2px}.code i{display:inline-block;width:30px;margin-left:-32px;margin-right:2px;text-align:right;font-style:normal;color:#000}.code .er{background:#ffd6d6}
 details{background:#f0f4fa;padding:8px;border-radius:6px}code{background:#e8e8e8;padding:0 3px}
 </style></head><body>
 <h1>Test Form Generator (Word .docx)</h1>
@@ -34,10 +34,10 @@ details{background:#f0f4fa;padding:8px;border-radius:6px}code{background:#e8e8e8
 <button id="sv">Save JSON</button>
 <label class="btn">Load JSON<input type="file" id="ld" accept=".json" hidden></label>
 <button id="clr">Clear local data</button> <span id="msg"></span></div>
-<div class="bar"><b>Code pages:</b>
+<div class="bar"><b>Preview and PDF:</b>
 <select id="pvl"><option value="side">Preview side by side</option><option value="stack">Preview one after the other</option></select>
-<label><input type="checkbox" id="pvk"> show mistakes</label>
-<button id="pvb">Preview</button><button id="pdf1">Save one PDF</button><button id="pdfn">Save a PDF per form</button></div>
+<label><input type="checkbox" id="pvk"> show answers</label>
+<button id="pvt">Preview entire test (all forms)</button><button id="pvb">Preview code pages</button><button id="pdf1">Save code pages as one PDF</button><button id="pdfn">Save code pages as a PDF per form</button></div>
 <div id="pv"></div>
 <script>
 
@@ -58,7 +58,7 @@ const g=el('div','imgs');
 s.im.forEach(m=>{const f=el('figure'),p=new Image(),c=el('figcaption');p.src=m.u;c.textContent='[[img'+m.id+']]';c.title='Click to copy';c.onclick=()=>{try{navigator.clipboard.writeText(c.textContent)}catch(e){}};
 const x=el('a');x.textContent=' remove';x.style.cursor='pointer';x.onclick=()=>{s.im=s.im.filter(k=>k!==m);render();save()};f.append(p,c,x);g.append(f)});
 const lb=el('label','btn');lb.textContent='+ Images';const fi=el('input');fi.type='file';fi.accept='image/*';fi.multiple=true;fi.hidden=true;fi.onchange=()=>addImgs(s,fi.files);lb.append(fi);
-if(code){const sl=el('select');[['both','Shuffle page order and which mistake is used'],['pages','Shuffle page order only'],['errors','Shuffle which mistake is used only']].forEach(([v,t])=>{const o=el('option');o.value=v;o.textContent=t;sl.append(o)});sl.value=s.mode||'both';sl.onchange=()=>{s.mode=sl.value;save()};const hi=el('div');hi.textContent='Pages separated by ---. Mistake spots: correct line @@ wrong line @@ note. About 44 lines of up to 127 characters fit on a page.';hi.style.cssText='font-size:12px;margin:6px 0';d.append(h,sl,hi,ta)}else d.append(h,ta,g,lb);box.append(d)})}
+if(code){const sl=el('select');[['both','Shuffle page order and which mistake is used'],['pages','Shuffle page order only'],['errors','Shuffle which mistake is used only']].forEach(([v,t])=>{const o=el('option');o.value=v;o.textContent=t;sl.append(o)});sl.value=s.mode||'both';sl.onchange=()=>{s.mode=sl.value;save()};const hi=el('div');hi.textContent='Pages separated by ---. Mistake spots: correct line @@ wrong line @@ note. With 4 mistake spots and 3 pages requested, 3 pages are made, each with a different mistake. About 44 lines of up to 127 characters fit on a page.';hi.style.cssText='font-size:12px;margin:6px 0';const rp=el('label');rp.textContent='Pages made from each code page template (each with a different mistake): ';const ri=el('input');ri.type='number';ri.min=1;ri.max=20;ri.value=s.rep||1;ri.style.width='50px';ri.oninput=()=>{s.rep=Math.max(1,+ri.value||1);save()};rp.append(ri);rp.style.cssText='display:block;margin:6px 0;font-size:13px';d.append(h,sl,rp,hi,ta)}else d.append(h,ta,g,lb);box.append(d)})}
 $('add').onclick=()=>{S.push({t:'New Section',q:'Question text?\n* Correct answer\n* Wrong answer\n* Wrong answer\n* Wrong answer',im:[],n:0});render();save()};
 $('sv').onclick=()=>{const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state())],{type:'application/json'}));a.download='test-generator-save.json';a.click()};
 $('ld').onchange=e=>{const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);S=o.S.map(s=>({im:[],n:0,...s}));$('title').value=o.title;$('nf').value=o.nf;$('seed').value=o.seed;$('keepA').checked=o.keepA;render();save()}catch(x){alert('Could not read that file.')}};r.readAsText(e.target.files[0])};
@@ -96,11 +96,13 @@ return zip([
 {n:'word/styles.xml',d:H+`<w:styles ${NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="24"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>`},
 {n:'word/document.xml',d:H+`<w:document ${NS} xmlns:r="${RT}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`},
 ...media.map((m,i)=>({n:'word/media/i'+i+'.png',d:b64(m.u)}))])}
+function formData(f){const r=rng($('seed').value+'ABCDEF'[f]),keep=f==0&&$('keepA').checked;
+return S.filter(s=>s.type!=='code').map(s=>{let qs=parse(s.q).map(q=>q.q.includes('___')?{q:q.q,fill:1,a:q.o}:{q:q.q,o:q.o.map((x,i)=>({x,c:!i}))});
+if(!keep){qs=shuf(qs,r);qs.forEach(q=>{if(!q.fill)q.o=shuf(q.o,r)})}return{s,qs}})}
 function build(f){const L='ABCDEF'[f],r=rng($('seed').value+L),keep=f==0&&$('keepA').checked,c={media:[],id:0},ti=$('title').value||'Test';let n=0;
 let T=P(R(ti,{b:1,sz:32}))+P(R('Form '+L,{b:1,sz:28}))+P(R('Name: ______________________   Period: ____   Date: ________'),{a:200});
 let K=P(R(ti+' - Form '+L+' Answer Key',{b:1,sz:28}),{a:160,pb:f>0});
-let first=1;S.forEach(s=>{if(s.type==='code')return;let qs=parse(s.q).map(q=>q.q.includes('___')?{q:q.q,fill:1,a:q.o}:{q:q.q,o:q.o.map((x,i)=>({x,c:!i}))});
-if(!keep){qs=shuf(qs,r);qs.forEach(q=>{if(!q.fill)q.o=shuf(q.o,r)})}
+let first=1;formData(f).forEach(({s,qs})=>{
 T+=P(R(s.t,{b:1,sz:26}),{pb:!first,a:120});first=0;K+=P(R(s.t,{b:1,sz:24}),{b:160});
 qs.forEach(q=>{n++;T+=P(runs(n+'. '+q.q,s,1,c),{kn:!q.fill&&q.o.length>0,b:160,a:80});
 if(q.fill)K+=P(R(n+'. '+q.a.map(plain).join(', ')+(q.a.length>1?'  (any order)':'')));
@@ -115,30 +117,63 @@ try{const nf=Math.max(1,Math.min(6,+$('nf').value||1)),nm=($('title').value||'Te
 for(let f=0;f<nf;f++){const o=build(f);if(S.some(s=>s.type!=='code'))dl(pack(o.t,o.media),nm+'_Form_'+'ABCDEF'[f]+'.docx');keys+=o.k;await new Promise(r=>setTimeout(r,500))}
 dl(pack(keys,[]),nm+'_Answer_Keys.docx');$('msg').textContent='Done: '+nf+' forms plus the answer key.'}catch(e){$('msg').textContent='Error: '+e.message;console.error(e)}};
 $('clr').onclick=()=>{if(confirm('Remove the test bank stored in this browser? Use Save JSON first if it is still needed.')){try{localStorage.removeItem('tg2')}catch(e){}S=[];$('title').value='';$('seed').value='';render()}};
-const CODE_SAMPLE=`name = input("Enter your name: ")
-age = int(input("Enter your age: "))
-print("Hello " + name)  @@ Print("Hello " + name)  @@ upper case P in print
-if age >= 16:
-    print("You can drive")  @@ print("You can drive")  @@ missing indent
+const CODE_SAMPLE=`# ---------- PROGRAM 1: CHATBOT ----------
+# greet the user
+print("Hello! I am ChatBot.")  @@ Print("Hello! I am ChatBot.")  @@ upper case P in print
+# store the user's name
+name = input("What is your name? ")  @@ name = imput("What is your name? ")  @@ input is misspelled
+# greet the user by name
+print("Nice to meet you, " + name)
+# ask for the user's age as a number
+age = int(input("How old are you? "))  @@ age = input("How old are you? ")  @@ forgot int()
+# decide what to say about the age
+if age >= 16:  @@ if age >= 16  @@ no colon at the end of the if line
+    # tell older users about driving
+    print("You are old enough to drive!")  @@ print("You are old enough to drive!")  @@ no indent under the if
 else:
-    print("Not yet")
----
-celsius = int(input("Enter Celsius: "))  @@ celsius = input("Enter Celsius: ")  @@ forgot int()
+    # tell younger users to wait
+    print("You can drive in a few years.")
+# ask about the favorite food
+food = input("What is your favorite food? ")
+# respond to the favorite food
+print(food + " sounds delicious!")  @@ print(food + " sounds delicious!)  @@ missing closing quote
+# ask which state the user lives in
+state = input("Which state do you live in? ")
+# check for two different states
+if state == "Indiana" or state == "Georgia":  @@ if state == "Indiana" or "Georgia":  @@ each side of or needs its own comparison
+    # respond to those states
+    print("I have heard good things about " + state)
+# say goodbye
+print("Goodbye, " + name)
+# ---------- PROGRAM 2: CELSIUS TO FAHRENHEIT ----------
+# get the temperature in Celsius
+celsius = int(input("Enter Celsius: "))
+# convert to Fahrenheit
 fahrenheit = (9/5) * celsius + 32  @@ fahrenheit = (9/5) * Celsius + 32  @@ variable name does not match
-print(fahrenheit)`;
+# show the answer
+print(fahrenheit)
+# ---------- PROGRAM 3: FAHRENHEIT TO CELSIUS ----------
+# get the temperature in Fahrenheit
+fahrenheit = int(input("Enter Fahrenheit: "))
+# convert to Celsius
+celsius = (5/9) * (fahrenheit - 32)  @@ celsius = (5/9)(fahrenheit - 32)  @@ missing * between parts
+# show the answer
+print(celsius)`;
 function parseCode(t){return t.split(/^[ \t]*-{3,}[ \t]*$/m).map(b=>b.replace(/^\s*\n/,'').replace(/\s+$/,'')).filter(b=>b).map(b=>{const lines=[],sites=[];
 b.split('\n').forEach((l,i)=>{if(l.includes('@@')){const q=l.split('@@');lines.push(q[0].replace(/\s+$/,''));sites.push({i,ok:q[0].replace(/\s+$/,''),bad:q[1].replace(/^ /,'').replace(/\s+$/,''),note:(q[2]||'').trim()})}else lines.push(l.replace(/\s+$/,''))});
 return{lines,sites}})}
 function codeData(f){const L='ABCDEF'[f],sd=$('seed').value,keep=f==0&&$('keepA').checked;let pgs=[];
-S.forEach(s=>{if(s.type!=='code')return;const mode=s.mode||'both';
-let ps=parseCode(s.q).map((p,pi)=>{let k=p.sites.length,si=0;if(k>1&&!keep&&mode!=='pages')si=(Math.floor(rng(sd+'e'+s.t+pi)()*k)+f)%k;
-const site=k?p.sites[si]:null;return{pi,site,err:site?site.i:-1,note:site?site.note:'',lines:p.lines.map((l,i)=>site&&site.i===i?site.bad:l),sec:s.t}});
+S.forEach(s=>{if(s.type!=='code')return;const mode=s.mode||'both',rep=Math.max(1,s.rep||1);let ps=[];
+parseCode(s.q).forEach((p,pi)=>{const n=p.sites.length;
+if(!n){ps.push({pi,site:null,err:-1,note:'',lines:p.lines,sec:s.t});return}
+const idx=[...Array(n).keys()],fix=keep||mode==='pages',perm=fix?idx:shuf(idx,rng(sd+'e'+s.t+pi)),off=fix?0:f*rep;
+for(let j=0;j<Math.min(rep,n);j++){const site=p.sites[perm[(off+j)%n]];ps.push({pi,site,err:site.i,note:site.note,lines:p.lines.map((l,i)=>i===site.i?site.bad:l),sec:s.t})}});
 if(!keep&&mode!=='errors')ps=shuf(ps,rng(sd+L+'p'+s.t));
 pgs=pgs.concat(ps)});
 return pgs.map((p,k)=>({...p,head:'Form '+L+'   |   '+($('title').value||'Test')+'   |   Code Page '+(k+1)+' of '+pgs.length}))}
 function codeKey(f){const o=[];codeData(f).forEach((p,k)=>{o.push('Page '+(k+1)+' (original page '+(p.pi+1)+'): '+(p.err<0?'no mistake set':'mistake on line '+(p.err+1))+(p.note?' - '+p.note:''));if(p.site)o.push('      wrong: '+p.site.bad+'   |   fix: '+p.site.ok)});return o}
 const nForms=()=>Math.max(1,Math.min(6,+$('nf').value||1));
-function warnFor(pgs){const bad=pgs.filter(p=>p.lines.length>44||p.lines.some(l=>l.length>127)).length;return bad?' Warning: '+bad+' page(s) have more than 44 lines or lines over 127 characters, so the PDF cuts them off.':''}
+function warnFor(pgs){const bad=pgs.filter(p=>p.lines.length>44||p.lines.some(l=>l.length>127)).length;const rw=S.some(s=>s.type==='code'&&parseCode(s.q).some(p=>p.sites.length&&(s.rep||1)>p.sites.length))?' Note: a code template has fewer mistakes than the pages requested, so only one page per mistake was made.':'';return rw+(bad?' Warning: '+bad+' page(s) have more than 44 lines or lines over 127 characters, so the PDF cuts them off.':'')}
 const pe=t=>t.replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"').replace(/\t/g,'    ').replace(/[^\x20-\x7e]/g,'?').replace(/[\\()]/g,'\\$&');
 const tx=(f,z,x,y,t)=>`BT /${f} ${z} Tf ${x.toFixed(1)} ${y.toFixed(1)} Td (${pe(t)}) Tj ET\n`;
 function codeOps(p){let o=tx('F3',11,36,574,p.head)+tx('F4',10,500,574,'Name: ________________  Period: ____')+tx('F4',10,36,556,'Line number with the mistake: ________     What is wrong? ______________________________________________')+'0.6 w 63 546 m 63 36 l S\n';
@@ -165,6 +200,16 @@ $('pdfn').onclick=async()=>{if(!hasCode()){$('msg').textContent='Add a code page
 const nm=($('title').value||'Test').replace(/[^\w-]+/g,'_');let all=[];
 for(let f=0;f<nForms();f++){const d=codeData(f);all=all.concat(d);dl(pdfBlob(d.map(codeOps)),nm+'_Code_Pages_Form_'+'ABCDEF'[f]+'.pdf');await new Promise(r=>setTimeout(r,500))}
 dl(pdfBlob(keyPages()),nm+'_Code_Pages_KEY.pdf');$('msg').textContent='Saved '+nForms()+' PDFs plus the key.'+warnFor(all)};
-$('addc').onclick=()=>{S.push({t:'Code Page Error Analysis',type:'code',mode:'both',q:CODE_SAMPLE,im:[],n:0});render();save()};
+$('addc').onclick=()=>{S.push({t:'Code Page Error Analysis',type:'code',mode:'both',rep:3,q:CODE_SAMPLE,im:[],n:0});render();save()};
+
+function hi(t,s,sc){return t.split(/(\*\*[^*]+\*\*|`[^`]+`|\[\[img\d+\]\]|___)/).filter(x=>x).map(p=>{let m;if(m=p.match(/^\[\[img(\d+)\]\]$/)){const im=s.im.find(k=>k.id==m[1]);return im?'<img src="'+im.u+'" width="'+Math.round(im.w*sc)+'" height="'+Math.round(im.h*sc)+'">':'[missing image]'}
+if(p==='___')return '________________';if(/^\*\*[^*]+\*\*$/.test(p))return '<b>'+esc(p.slice(2,-2))+'</b>';if(/^`[^`]+`$/.test(p))return '<code>'+esc(p.slice(1,-1))+'</code>';return esc(p)}).join('')}
+function testHtml(f,show){const L='ABCDEF'[f],ti=$('title').value||'Test';let n=0,h='';
+formData(f).forEach(({s,qs})=>{h+='<div class="pg tp"><b>'+esc(ti)+' - Form '+L+'</b><div class="nm2">Name: ______________ &nbsp; Period: ____ &nbsp; Date: ________</div><h3>'+esc(s.t)+'</h3>'+qs.map(q=>{n++;let x='<div class="q">'+n+'. '+hi(q.q,s,1)+'</div>';
+if(q.fill){if(show)x+='<div class="op ok">Answer: '+esc(q.a.join(', '))+'</div>'}else x+=q.o.map((o,i)=>'<div class="op'+(show&&o.c?' ok':'')+'">'+String.fromCharCode(65+i)+'. '+hi(o.x,s,.7)+'</div>').join('');return x}).join('')+'</div>'});return h}
+$('pvt').onclick=()=>{if(!S.length){$('msg').textContent='Add a section or load a test bank first.';return}
+const side=$('pvl').value==='side',show=$('pvk').checked,pv=$('pv');let h='',all=[];
+for(let f=0;f<nForms();f++){h+=testHtml(f,show);const d=codeData(f);all=all.concat(d);h+=d.map(p=>pageHtml(p,show)).join('')}
+pv.className=side?'side':'stack';pv.innerHTML=h;$('msg').textContent='Entire test previewed for '+nForms()+' forms (sections first, then code pages). Long sections flow onto extra pages in Word.'+warnFor(all);pv.scrollIntoView()};
 render();
 </script></body></html>
